@@ -12,7 +12,7 @@ class MallardDucksEnv(gym.Env, utils.EzPickle):
         """ Constructor """
         utils.EzPickle.__init__(self)
         self.observation_space = spaces.Box(low=0., high=30., shape=(2,), dtype=np.float)   # (Nb birds, nb ponds)
-        self.action_space = spaces.Discrete(300)                                            # Est nb of birds harvested
+        self.action_space = spaces.Discrete(100)                                            # Est nb of birds harvested
 
         # Current internal state
         self._nb_adult = 0.
@@ -23,7 +23,7 @@ class MallardDucksEnv(gym.Env, utils.EzPickle):
         """ Runs one timestep """
         adults_t = self._nb_adult
         ponds_t = self._nb_ponds
-        nb_killed = action * 0.1
+        nb_killed = action * 0.3
         nb_killed = np.random.choice([0.9 * nb_killed, nb_killed, 1.1 * nb_killed], 1, p=[0.2, 0.6, 0.2])[0]
         nb_killed = max(0, min(adults_t, nb_killed))
 

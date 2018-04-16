@@ -1,5 +1,4 @@
 import gym
-from matplotlib import pyplot as plt
 import ppaquette_gym_mallard_ducks
 import tensorflow as tf
 
@@ -7,8 +6,8 @@ class Agent(object):
     """ The learning agent """
 
     def __init__(self, env_name, gamma=0.95,
-                 use_policy_trace=True, policy_alpha=0.03, policy_lambda=0.9,
-                 use_critic_trace=True, critic_alpha=0.005, critic_lambda=0.9):
+                 use_policy_trace=True, policy_alpha=1e-4, policy_lambda=0.999,
+                 use_critic_trace=True, critic_alpha=1e-4, critic_lambda=0.999):
         """ Constructor """
         tf.reset_default_graph()
         self.gamma = gamma
@@ -49,7 +48,7 @@ class Agent(object):
             logits = tf.layers.dense(state, self.nb_actions, activation=None)
             probs = tf.nn.softmax(logits)
             log_probs = tf.log(probs)
-            log_prob_chosen_action = tf.gather(log_probs, action, axis=1)
+            log_prob_chosen_action = -1. * tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=action)
             self.outputs['sampled_action'] = tf.multinomial(log_probs, num_samples=1)
 
         # Critic network
@@ -157,9 +156,9 @@ def train_agent(agent, env_name, nb_episodes):
         agent.start_episode()
         done = False
         env_state = env.reset()
+        env_action = agent.get_action(env_state)
 
-        while not done and step <= 100:
-            env_action = agent.get_action(env_state)
+        while not done and step <= 25:
             env_next_state, env_reward, done, _ = env.step(env_action)
             episode_reward += env_reward
             agent.learn(env_state, env_action, env_reward, env_next_state, done)
@@ -168,15 +167,14 @@ def train_agent(agent, env_name, nb_episodes):
 
         if (episode_ix + 1) % 100 == 0:
             print('.',)
+            print('Total rew:', str(round(episode_reward, 2)),
+                  ' -- Action:', env_action,
+                  ' -- Birds killed/year:', str(round(0.3 * env_action, 2)))
         elif (episode_ix + 1) % 10 == 0:
             print('.', end='')
         rewards += [episode_reward]
-        print(episode_reward)
 
-    # Plotting rewards
-    plt.plot(rewards)
-    print(rewards)
-
-env_name = 'ppaquette/MallardDucks-v0'
-agent = Agent(env_name)
-train_agent(agent, env_name, nb_episodes=1000)
+if __name__ == '__main__':
+    env_name = 'ppaquette/MallardDucks-v0'
+    agent = Agent(env_name)
+    train_agent(agent, env_name, nb_episodes=10000)
