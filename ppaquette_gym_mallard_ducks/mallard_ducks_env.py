@@ -14,16 +14,29 @@ class MallardDucksEnv(gym.Env, utils.EzPickle):
         self.observation_space = spaces.Box(low=0., high=30., shape=(2,), dtype=np.float)   # (Nb birds, nb ponds)
         self.action_space = spaces.Discrete(100)                                            # Est nb of birds harvested
 
+        # Reset state
+        self._initial_nb_adults = 11.
+        self._initial_nb_ponds = 1.5
+        self._initial_additive_mortality = True
+
         # Current internal state
-        self._nb_adult = 0.
-        self._nb_ponds = 0.
-        self._additive_mortality = True
+        self._nb_adult = self._initial_nb_adults
+        self._nb_ponds = self._initial_nb_ponds
+        self._additive_mortality = self._initial_additive_mortality
+
+    def configure(self, nb_adults=11., nb_ponds=1.5, additive_mortality=True):
+        """ Reconfigure the env with new parameters """
+        self._initial_nb_adults = nb_adults
+        self._initial_nb_ponds = nb_ponds
+        self._initial_additive_mortality = additive_mortality
 
     def step(self, action):
-        """ Runs one timestep """
+        """ Runs one timestep
+            :param action: Represents the % of birds we want to kill
+        """
         adults_t = self._nb_adult
         ponds_t = self._nb_ponds
-        nb_killed = action * 0.3
+        nb_killed = action / 100. * self._nb_adult
         nb_killed = np.random.choice([0.9 * nb_killed, nb_killed, 1.1 * nb_killed], 1, p=[0.2, 0.6, 0.2])[0]
         nb_killed = max(0, min(adults_t, nb_killed))
 
@@ -53,11 +66,11 @@ class MallardDucksEnv(gym.Env, utils.EzPickle):
         info = {}
         return next_state, reward, done, info
 
-    def reset(self, nb_adults=11., nb_ponds=1.5, additive_mortality=True):
+    def reset(self):
         """ Resets the environment """
-        self._nb_adult = nb_adults
-        self._nb_ponds = nb_ponds
-        self._additive_mortality = additive_mortality
+        self._nb_adult = self._initial_nb_adults
+        self._nb_ponds = self._initial_nb_ponds
+        self._additive_mortality = self._initial_additive_mortality
         return self._get_state()
 
     def _get_state(self):
